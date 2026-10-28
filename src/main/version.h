@@ -32,6 +32,7 @@
 #define DEBUG_API_VERSION    0x020001
 #define VIDEXT_API_VERSION   0x030300
 #define NETPLAY_API_VERSION  0x010001
+#define ARCHIPELAGO_BIZHAWK_API_VERSION  0x000001
 
 #define VERSION_PRINTF_SPLIT(x) (((x) >> 16) & 0xffff), (((x) >> 8) & 0xff), ((x) & 0xff)
 

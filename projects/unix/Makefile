@@ -372,7 +372,14 @@ ifeq ($(origin SDL_CFLAGS) $(origin SDL_LDLIBS), undefined undefined)
   ifeq ($(shell $(PKG_CONFIG) --modversion sdl2 2>/dev/null),)
     $(error No SDL2 development libraries found!)
   endif
+  include_sdl_net =
   ifeq ($(NETPLAY), 1)
+    include_sdl_net = yes
+  endif
+  ifeq ($(AP_BIZHAWK), 1)
+    include_sdl_net = yes
+  endif
+  ifdef include_sdl_net
     ifeq ($(shell $(PKG_CONFIG) --modversion SDL2_net 2>/dev/null),)
       $(error No SDL2_net development libraries found!)
     endif
@@ -657,6 +664,16 @@ CFLAGS += -DM64P_NETPLAY
 SOURCE += $(SRCDIR)/main/netplay.c
 endif
 
+# archipelago bizhawk
+ifeq ($(AP_BIZHAWK), 1)
+CFLAGS += -DM64P_ARCHIPELAGO_BIZHAWK
+SOURCE += $(SRCDIR)/main/archipelago_bizhawk.c
+SOURCE += $(SRCDIR)/main/cJSON.c
+SOURCE += $(SRCDIR)/main/base64.c
+SOURCE += $(SRCDIR)/main/memory_slice.c
+SOURCE += $(SRCDIR)/main/dynamic_string.c
+endif
+
 # source files for optional features
 ifeq ($(DBG_COUNT), 1)
   CFLAGS += -DCOUNT_INSTR
@@ -817,6 +834,7 @@ targets:
 	@echo "    PIC=(1|0)      == Force enable/disable of position independent code"
 	@echo "    OSD=(1|0)      == Enable/disable build of OpenGL On-screen display"
 	@echo "    NETPLAY=1      == Enable netplay functionality, requires SDL2_net"
+	@echo "    AP_BIZHAWK=1   == Enable Archipelago BizHawk functionality, requires SDL2_net"
 	@echo "    NEW_DYNAREC=1  == Replace dynamic recompiler with Ari64's experimental dynarec"
 	@echo "    KEYBINDINGS=0  == Disables the default keybindings"
 	@echo "    ACCURATE_FPU=1 == Enables accurate FPU behavior (i.e correct cause bits)"

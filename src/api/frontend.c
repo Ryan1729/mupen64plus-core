@@ -46,6 +46,7 @@
 #include "main/workqueue.h"
 #include "main/screenshot.h"
 #include "main/netplay.h"
+#include "main/archipelago_bizhawk.h"
 #include "plugin/plugin.h"
 #include "vidext.h"
 
@@ -377,6 +378,19 @@ EXPORT m64p_error CALL CoreDoCommand(m64p_command Command, int ParamInt, void *P
                 return M64ERR_INCOMPATIBLE;
         case M64CMD_NETPLAY_CLOSE:
             return netplay_stop();
+        case M64CMD_ARCHIPELAGO_BIZHAWK_START:
+            return archipelago_bizhawk_start();
+        case M64CMD_ARCHIPELAGO_BIZHAWK_GET_VERSION:
+            if (ParamPtr == NULL)
+                return M64ERR_INPUT_INVALID;
+            *(uint32_t*)ParamPtr = ARCHIPELAGO_BIZHAWK_CORE_VERSION;
+            if (ParamInt == ARCHIPELAGO_BIZHAWK_API_VERSION)
+                return M64ERR_SUCCESS;
+            else
+                return M64ERR_INCOMPATIBLE;
+        case M64CMD_ARCHIPELAGO_BIZHAWK_STOP:
+            archipelago_bizhawk_stop();
+            return M64ERR_SUCCESS;
         default:
             return M64ERR_INPUT_INVALID;
     }
