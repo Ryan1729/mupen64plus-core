@@ -1,3 +1,13 @@
+Mupen64Plus-Core Archipelago BizHawk README
+
+A fork of Mupen64plus-ui-console to add support for connecting to Archipelago implmentations for games that use the BizHawk client.
+
+When using the ui-console, in order to enable the Archipelago BizHawk functionality, you will need to pass `--bizhawk` on the command line, before the rom name.
+
+If things are working, you should see a message containing "Now accepting requests" in the terminal output.
+
+Updtream README follows:
+
 Mupen64Plus-Core README
 -----------------------
 
