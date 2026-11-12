@@ -1,3 +1,31 @@
+# Mupen64Plus-Core Archipelago BizHawk README
+
+A fork of Mupen64plus-ui-console to add support for connecting to Archipelago implmentations for games that use the BizHawk client.
+
+When using the ui-console, in order to enable the Archipelago BizHawk functionality, you will need to pass `--bizhawk` on the command line, before the rom name.
+
+Normally, one needs to install the program, placing things like the `libmupen64plus.so.2` file in the right spot, by following the directions from the upstream documentation. See note for testing below for an alternative.
+
+If things are working, you should see a message containing "Now accepting requests" in the terminal output.
+
+Note for testing:
+
+If you find yourself switching between different verions of the program fast enough that installing the program is burdensome, then you may instead use the `--corelib` command line flag to indicate where that file is, so the program will start up probperly and not stop with an error like:
+
+```
+ /usr/local/lib/libmupen64plus.so.2: cannot open shared object file: No such file or directory
+```
+
+If you are running the program from the folder extracted from the release archive, you can use the `--corelib` as follows:
+
+```
+./mupen64plus --corelib ./libmupen64plus.so.2 /path/to/MyCoolRom.z64
+```
+
+Upstream README follows:
+
+---
+
 # Mupen64Plus-Core README
 
 [![GitHub Actions Build Status](https://github.com/mupen64plus/mupen64plus-core/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/mupen64plus/mupen64plus-core/actions)
