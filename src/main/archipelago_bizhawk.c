@@ -42,6 +42,12 @@
 #define assert_always_run(expression) expression
 #endif
 
+// Shows debug messages tagged with M64MSG_VERBOSE, so verbose messages
+// need to be enabled for this to do anything.
+// PERF Could avoid formatting the strings when verbose messages are
+//      disabled by passing verbose flag to this module's init.
+#define SHOW_READ_MESSAGES
+
 const Uint32 TICK_INTERVAL_MS = 125;
 const Uint32 SERVER_ATTEMPT_INTERVAL_MS = 1000;
 const Uint16 SOCKET_PORT_FIRST = 43055;
@@ -251,9 +257,9 @@ memory_slice_outcome get_memory_slice(memory_slice *slice, parsed_domain domain)
     return MEMORY_SLICE_SUCCESS;
 }
 
-// This is a remnant of when we thought that conversions like 
+// This is a remnant of when we thought that conversions like
 // `address ^ 3` woudl be needed, reading the bizhawk source code. Seems
-// best to leave this here as a placeholder until we implement all the 
+// best to leave this here as a placeholder until we implement all the
 // memory domains we can, just in case.
 process_message_outcome convert_address(int *base_address, parsed_domain domain, int address) {
     switch (domain) {
@@ -286,7 +292,7 @@ process_message_outcome handle_read_with_data(unsigned char *data, int requested
         return outcome;
     }
 
-    if (base_address + requested_size <= slice.size) {        
+    if (base_address + requested_size <= slice.size) {
         for (int i = 0; i < requested_size; ++i) {
             data[i] = memory_slice_read_8(slice, base_address + i);
         }
@@ -585,6 +591,52 @@ process_message_outcome handle_system(cJSON *output_obj, const cJSON *request) {
     return PROCESS_MESSAGE_SUCCESS;
 }
 
+process_message_outcome handle_memory_size(cJSON *output_obj, const cJSON *request) {
+    assert(output_obj != NULL);
+
+    parsed_domain domain = check_domain(request);
+    if (domain == DOMAIN_INVALID) {
+        return build_error_response(output_obj, "Bad/missing domain field: %d", domain);
+    }
+
+    cJSON *output_type = cJSON_CreateString("MEMORY_SIZE_RESPONSE");
+    if (output_type == NULL) {
+        return PROCESS_MESSAGE_NO_MEMORY;
+    }
+
+    if (!cJSON_AddItemToObjectCS(output_obj, "type", output_type)) {
+        return PROCESS_MESSAGE_NO_MEMORY;
+    }
+
+    memory_slice slice;
+    memory_slice_outcome slice_outcome = get_memory_slice(&slice, domain);
+    switch (slice_outcome) {
+        case MEMORY_SLICE_SUCCESS:
+            // All good; keep going.
+        break;
+        case MEMORY_SLICE_NOT_READY:
+            return build_error_response(output_obj, "Game was not loaded yet.");
+        break;
+        case MEMORY_SLICE_BAD_INPUT:
+            return build_error_response(output_obj, "Invalid memory domain was requested.");
+        break;
+        default:
+            return build_error_response(output_obj, "Unknown memory domain was requested.");
+        break;
+    }
+
+    cJSON *output_value = cJSON_CreateNumber(slice.size);
+    if (output_value == NULL) {
+        return PROCESS_MESSAGE_NO_MEMORY;
+    }
+
+    if (!cJSON_AddItemToObjectCS(output_obj, "value", output_value)) {
+        return PROCESS_MESSAGE_NO_MEMORY;
+    }
+
+    return PROCESS_MESSAGE_SUCCESS;
+}
+
 process_message_outcome handle_unknown_command(cJSON *output_obj, const char *type) {
     assert(output_obj != NULL);
 
@@ -633,6 +685,10 @@ process_message_outcome process_message(dynamic_string* output, const dynamic_st
     int previously_failed_guard = 0;
     int previously_failed_guard_address = 0;
 
+#ifdef SHOW_READ_MESSAGES
+    int was_read = 0;
+#endif
+
     for (int i = 0; i < input_array_len; ++i) {
         if (previously_failed_guard) {
             cJSON *output_obj = cJSON_CreateObject();
@@ -672,6 +728,10 @@ process_message_outcome process_message(dynamic_string* output, const dynamic_st
             if (strcmp(type, "PING") == 0) {
                 outcome = handle_ping(output_obj);
             } else if (strcmp(type, "READ") == 0) {
+#ifdef SHOW_READ_MESSAGES
+                was_read = 1;
+                DebugMessage(M64MSG_VERBOSE, "%.*s", (int)l_input_buffer.len, l_input_buffer.buffer);
+#endif
                 outcome = handle_read(output_obj, input_obj);
             } else if (strcmp(type, "GUARD") == 0) {
                 outcome = handle_guard(output_obj, input_obj);
@@ -687,6 +747,14 @@ process_message_outcome process_message(dynamic_string* output, const dynamic_st
                 outcome = handle_hash(output_obj, input_obj);
             } else if (strcmp(type, "SYSTEM") == 0) {
                 outcome = handle_system(output_obj, input_obj);
+            } else if (strcmp(type, "MEMORY_SIZE") == 0) {
+#ifdef SHOW_READ_MESSAGES
+                // These are effectively a read, just of the length of
+                // the domain
+                was_read = 1;
+                DebugMessage(M64MSG_VERBOSE, "%.*s", (int)l_input_buffer.len, l_input_buffer.buffer);
+#endif
+                outcome = handle_memory_size(output_obj, input_obj);
             } else {
                 outcome = handle_unknown_command(output_obj, type);
             }
@@ -715,6 +783,12 @@ process_message_outcome process_message(dynamic_string* output, const dynamic_st
             }
         }
     }
+
+#ifdef SHOW_READ_MESSAGES
+    if (was_read) {
+        DebugMessage(M64MSG_VERBOSE, "%.*s", (int)l_output_buffer.len, l_output_buffer.buffer);
+    }
+#endif
 
     cJSON_Delete(output_array);
     cJSON_Delete(input_array);
