@@ -801,7 +801,7 @@ Uint32 archipelago_bizhawk_tick(Uint32 interval, void* param)
     l_time_since_last_server_attempt_ms += interval;
 
     switch (l_state) {
-        case ARCHIPELAGO_BIZHAWK_WAITING:
+        case ARCHIPELAGO_BIZHAWK_WAITING: {
             int all_ready = 1;
             for (parsed_domain domain = FIRST_VALID_DOMAIN; domain <= LAST_VALID_DOMAIN; ++domain) {
                 memory_slice slice;
@@ -832,8 +832,9 @@ Uint32 archipelago_bizhawk_tick(Uint32 interval, void* param)
                 DebugMessage(M64MSG_INFO, "Archipelago BizHawk: Starting server");
                 l_state = ARCHIPELAGO_BIZHAWK_DISCONNECTED;
             }
-        break;
-        case ARCHIPELAGO_BIZHAWK_DISCONNECTED:
+            break;
+        }
+        case ARCHIPELAGO_BIZHAWK_DISCONNECTED: {
             if (l_time_since_last_server_attempt_ms >= SERVER_ATTEMPT_INTERVAL_MS) {
                 l_time_since_last_server_attempt_ms = 0;
                 IPaddress ip;
@@ -862,8 +863,9 @@ Uint32 archipelago_bizhawk_tick(Uint32 interval, void* param)
                     // Try again next tick.
                 }
             }
-        break;
-        case ARCHIPELAGO_BIZHAWK_ACCEPTING_REQUESTS:
+            break;
+        }
+        case ARCHIPELAGO_BIZHAWK_ACCEPTING_REQUESTS: {
             // Attempt to connect
             l_client = SDLNet_TCP_Accept(l_server);
             if (l_client) {
@@ -892,8 +894,9 @@ Uint32 archipelago_bizhawk_tick(Uint32 interval, void* param)
                 // Not an unexpected state, the client may simply not be
                 // started up yet. Try again next tick.
             }
-        break;
-        case ARCHIPELAGO_BIZHAWK_CHECKING_MESSAGES:
+            break;
+        }
+        case ARCHIPELAGO_BIZHAWK_CHECKING_MESSAGES: {
             // Check for a message on the connection, without waiting.
             int ready_count = SDLNet_CheckSockets(l_socket_set, 0);
             if (ready_count == 0) {
@@ -1006,9 +1009,11 @@ Uint32 archipelago_bizhawk_tick(Uint32 interval, void* param)
                 SDLNet_TCP_Close(l_client);
                 l_state = ARCHIPELAGO_BIZHAWK_DISCONNECTED;
             }
-        break;
-        default:
+            break;
+        }
+        default: {
             DebugMessage(M64MSG_ERROR, "Archipelago BizHawk: Unexpected state: %d", l_state);
+        }
     }
 
     return interval;
