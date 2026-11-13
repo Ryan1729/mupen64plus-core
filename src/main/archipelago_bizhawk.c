@@ -26,6 +26,7 @@
 #include "dynamic_string.h"
 #include "memory_slice.h"
 #include "main.h"
+#include "osd/osd.h"
 #include "rom.h"
 #include "version.h"
 
@@ -44,8 +45,6 @@
 
 // Shows debug messages tagged with M64MSG_VERBOSE, so verbose messages
 // need to be enabled for this to do anything.
-// PERF Could avoid formatting the strings when verbose messages are
-//      disabled by passing verbose flag to this module's init.
 #define SHOW_READ_MESSAGES
 
 const Uint32 TICK_INTERVAL_MS = 125;
@@ -69,6 +68,19 @@ int get_int(const cJSON *obj, const char* key, int* output) {
     return 0;
 }
 
+// Returns 1 unless there is an error, such as the obj
+// not having the given field, etc., in which case 0 is returned
+int get_double(const cJSON *obj, const char* key, double* output) {
+    cJSON *value = cJSON_GetObjectItemCaseSensitive(obj, key);
+
+    if (cJSON_IsNumber(value)) {
+        *output = value->valuedouble;
+        return 1;
+    }
+
+    return 0;
+}
+
 typedef enum {
     ARCHIPELAGO_BIZHAWK_WAITING,
     ARCHIPELAGO_BIZHAWK_DISCONNECTED,
@@ -84,6 +96,7 @@ static SDLNet_SocketSet l_socket_set;
 static dynamic_string l_input_buffer = {};
 static dynamic_string l_output_buffer = {};
 static int l_is_verbose = 0;
+static int l_message_interval_frames = 0;
 
 typedef enum {
     PROCESS_MESSAGE_SUCCESS = 0,
@@ -638,6 +651,86 @@ process_message_outcome handle_memory_size(cJSON *output_obj, const cJSON *reque
     return PROCESS_MESSAGE_SUCCESS;
 }
 
+process_message_outcome handle_preferred_cores(cJSON *output_obj, const cJSON *request) {
+    assert(output_obj != NULL);
+
+    cJSON *output_type = cJSON_CreateString("PREFERRED_CORES_RESPONSE");
+    if (output_type == NULL) {
+        return PROCESS_MESSAGE_NO_MEMORY;
+    }
+
+    if (!cJSON_AddItemToObjectCS(output_obj, "type", output_type)) {
+        return PROCESS_MESSAGE_NO_MEMORY;
+    }
+
+    // We punt on this one, and just return an empty object.
+    cJSON *output_value = cJSON_CreateObject();
+    if (output_value == NULL) {
+        return PROCESS_MESSAGE_NO_MEMORY;
+    }
+
+    if (!cJSON_AddItemToObjectCS(output_obj, "value", output_value)) {
+        return PROCESS_MESSAGE_NO_MEMORY;
+    }
+
+    return PROCESS_MESSAGE_SUCCESS;
+}
+
+process_message_outcome handle_display_message(cJSON *output_obj, const cJSON *request) {
+    assert(output_obj != NULL);
+
+    char *message = cJSON_GetStringValue(cJSON_GetObjectItemCaseSensitive(request, "message"));
+
+    if (message != NULL) {
+        osd_message_t *msg = osd_new_message(OSD_TOP_LEFT, message);
+
+        // While adding the message interval to the initial delay is not
+        // identical behaviour to building a message queue and popping
+        // them off after the given time, it seems like it should be
+        // close most of the time, and saves us having to write a queue,
+        // or manage SDL timers. We can do it properly later if the need
+        // becomes apparent.
+
+        msg->timeout[OSD_APPEAR] += l_message_interval_frames;
+    }
+
+    return build_basic_response(output_obj, "DISPLAY_MESSAGE_RESPONSE");
+}
+
+process_message_outcome handle_set_message_interval(cJSON *output_obj, const cJSON *request) {
+    assert(output_obj != NULL);
+
+    double seconds;
+    if (!get_double(request, "value", &seconds)) {
+        return build_error_response(output_obj, "Bad/missing value field");
+    }
+
+    const double VILimitSeconds = 1.0 / g_dev.vi.expected_refresh_rate;
+
+    // Say we got passed 0.05 seconds AKA 1/20 seconds. If we are in
+    // 60FPS mode then VILimitSeconds would be 1/60. We divide 1/20 by
+    // 1/60 and expect to get 3.
+
+    l_message_interval_frames = seconds / VILimitSeconds;
+
+    return build_basic_response(output_obj, "SET_MESSAGE_INTERVAL_RESPONSE");
+}
+
+process_message_outcome handle_lock(cJSON *output_obj, const cJSON *request) {
+    assert(output_obj != NULL);
+
+    // The PJ64 bizhawk connector script punts on these like this, so we
+    // might as well do the same, at least until we hear of an n64 game
+    // implementation that actually uses LOCK/UNLOCK.
+    return build_error_response(output_obj, "LOCK is unimplemented");
+}
+
+process_message_outcome handle_unlock(cJSON *output_obj, const cJSON *request) {
+    assert(output_obj != NULL);
+
+    return build_error_response(output_obj, "UNLOCK is unimplemented");
+}
+
 process_message_outcome handle_unknown_command(cJSON *output_obj, const char *type) {
     assert(output_obj != NULL);
 
@@ -760,6 +853,16 @@ process_message_outcome process_message(dynamic_string* output, const dynamic_st
                 }
 #endif
                 outcome = handle_memory_size(output_obj, input_obj);
+            } else if (strcmp(type, "PREFERRED_CORES") == 0) {
+                outcome = handle_preferred_cores(output_obj, input_obj);
+            } else if (strcmp(type, "DISPLAY_MESSAGE") == 0) {
+                outcome = handle_display_message(output_obj, input_obj);
+            } else if (strcmp(type, "SET_MESSAGE_INTERVAL") == 0) {
+                outcome = handle_set_message_interval(output_obj, input_obj);
+            } else if (strcmp(type, "LOCK") == 0) {
+                outcome = handle_lock(output_obj, input_obj);
+            } else if (strcmp(type, "UNLOCK") == 0) {
+                outcome = handle_unlock(output_obj, input_obj);
             } else {
                 outcome = handle_unknown_command(output_obj, type);
             }
@@ -1027,7 +1130,7 @@ Uint32 archipelago_bizhawk_tick(Uint32 interval, void* param)
 m64p_error archipelago_bizhawk_start(int is_verbose)
 {
     l_is_verbose = is_verbose;
-    
+
     if (SDL_InitSubSystem(SDL_INIT_TIMER) < 0)
     {
         DebugMessage(M64MSG_ERROR, "Archipelago BizHawk: Could not initialize SDL timer subsystem. %s", SDL_GetError());
