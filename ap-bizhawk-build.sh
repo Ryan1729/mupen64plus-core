@@ -51,7 +51,7 @@ for component in ${M64P_COMPONENTS}; do
 		component_type="library"
     elif  [ "${component}" = "rom" ]; then
 		echo "************************************ Building test ROM"
-		cp $(pwd)/../mupen64plus-rom/m64p_test_rom.v64 ./build/
+		cp ap-bizhawk-source/mupen64plus-rom/m64p_test_rom.v64 ./build/
 		continue
 	elif  [ "${component}" = "ui-console" ]; then
 		component_type="front-end"
@@ -61,10 +61,10 @@ for component in ${M64P_COMPONENTS}; do
 
 	echo "************************************ Building ${component} ${component_type}"
 	if [ -n "$CLEAN" ]; then
-		"$MAKE" -C $(pwd)/../mupen64plus-${component}/projects/unix clean $@
+		"$MAKE" -C ap-bizhawk-source/mupen64plus-${component}/projects/unix clean $@
 	fi
-	"$MAKE" -C $(pwd)/../mupen64plus-${component}/projects/unix all "$FEATURE_FLAGS" $@
-	"$MAKE" -C $(pwd)/../mupen64plus-${component}/projects/unix install $@ ${MAKE_INSTALL} DESTDIR="$(pwd)/build/"
+	"$MAKE" -C ap-bizhawk-source/mupen64plus-${component}/projects/unix all "$FEATURE_FLAGS" $@
+	"$MAKE" -C ap-bizhawk-source/mupen64plus-${component}/projects/unix install $@ ${MAKE_INSTALL} DESTDIR="$(pwd)/build/"
 
 	mkdir -p ./build/doc
 	for doc in LICENSES README RELEASE; do
