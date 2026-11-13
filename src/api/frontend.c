@@ -379,7 +379,7 @@ EXPORT m64p_error CALL CoreDoCommand(m64p_command Command, int ParamInt, void *P
         case M64CMD_NETPLAY_CLOSE:
             return netplay_stop();
         case M64CMD_ARCHIPELAGO_BIZHAWK_START:
-            return archipelago_bizhawk_start();
+            return archipelago_bizhawk_start(ParamInt);
         case M64CMD_ARCHIPELAGO_BIZHAWK_GET_VERSION:
             if (ParamPtr == NULL)
                 return M64ERR_INPUT_INVALID;

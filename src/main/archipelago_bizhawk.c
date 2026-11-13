@@ -83,6 +83,7 @@ static TCPsocket l_server, l_client;
 static SDLNet_SocketSet l_socket_set;
 static dynamic_string l_input_buffer = {};
 static dynamic_string l_output_buffer = {};
+static int l_is_verbose = 0;
 
 typedef enum {
     PROCESS_MESSAGE_SUCCESS = 0,
@@ -729,8 +730,10 @@ process_message_outcome process_message(dynamic_string* output, const dynamic_st
                 outcome = handle_ping(output_obj);
             } else if (strcmp(type, "READ") == 0) {
 #ifdef SHOW_READ_MESSAGES
-                was_read = 1;
-                DebugMessage(M64MSG_VERBOSE, "%.*s", (int)l_input_buffer.len, l_input_buffer.buffer);
+                if (l_is_verbose) {
+                    was_read = 1;
+                    DebugMessage(M64MSG_VERBOSE, "%.*s", (int)l_input_buffer.len, l_input_buffer.buffer);
+                }
 #endif
                 outcome = handle_read(output_obj, input_obj);
             } else if (strcmp(type, "GUARD") == 0) {
@@ -751,8 +754,10 @@ process_message_outcome process_message(dynamic_string* output, const dynamic_st
 #ifdef SHOW_READ_MESSAGES
                 // These are effectively a read, just of the length of
                 // the domain
-                was_read = 1;
-                DebugMessage(M64MSG_VERBOSE, "%.*s", (int)l_input_buffer.len, l_input_buffer.buffer);
+                if (l_is_verbose) {
+                    was_read = 1;
+                    DebugMessage(M64MSG_VERBOSE, "%.*s", (int)l_input_buffer.len, l_input_buffer.buffer);
+                }
 #endif
                 outcome = handle_memory_size(output_obj, input_obj);
             } else {
@@ -785,7 +790,7 @@ process_message_outcome process_message(dynamic_string* output, const dynamic_st
     }
 
 #ifdef SHOW_READ_MESSAGES
-    if (was_read) {
+    if (l_is_verbose && was_read) {
         DebugMessage(M64MSG_VERBOSE, "%.*s", (int)l_output_buffer.len, l_output_buffer.buffer);
     }
 #endif
@@ -1019,8 +1024,10 @@ Uint32 archipelago_bizhawk_tick(Uint32 interval, void* param)
     return interval;
 }
 
-m64p_error archipelago_bizhawk_start()
+m64p_error archipelago_bizhawk_start(int is_verbose)
 {
+    l_is_verbose = is_verbose;
+    
     if (SDL_InitSubSystem(SDL_INIT_TIMER) < 0)
     {
         DebugMessage(M64MSG_ERROR, "Archipelago BizHawk: Could not initialize SDL timer subsystem. %s", SDL_GetError());
