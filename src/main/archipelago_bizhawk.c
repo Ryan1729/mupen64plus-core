@@ -193,7 +193,7 @@ process_message_outcome build_guard_response(cJSON *output_obj, int validated, i
         return PROCESS_MESSAGE_NO_MEMORY;
     }
 
-    if (!cJSON_AddItemToObjectCS(output_obj, "validated", output_validated)) {
+    if (!cJSON_AddItemToObjectCS(output_obj, "value", output_validated)) {
         return PROCESS_MESSAGE_NO_MEMORY;
     }
 
