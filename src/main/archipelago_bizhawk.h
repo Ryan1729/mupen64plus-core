@@ -26,12 +26,12 @@
 
 #ifdef M64P_ARCHIPELAGO_BIZHAWK
 
-m64p_error archipelago_bizhawk_start();
+m64p_error archipelago_bizhawk_start(int is_verbose);
 void archipelago_bizhawk_stop();
 
 #else
 
-static osal_inline m64p_error archipelago_bizhawk_start()
+static osal_inline m64p_error archipelago_bizhawk_start(int _is_verbose)
 {
     return M64ERR_INCOMPATIBLE;
 }
