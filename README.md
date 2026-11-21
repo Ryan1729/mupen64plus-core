@@ -22,6 +22,26 @@ If you are running the program from the folder extracted from the release archiv
 ./mupen64plus --corelib ./libmupen64plus.so.2 /path/to/MyCoolRom.z64
 ```
 
+## Alternate Plugins
+
+Some games require or simply work better with a different set of plugins, for example, Pokemon Snap needs a [video plugin](https://github.com/ata4/angrylion-rdp-plus) which is more accurate than the default one to recognize pictures properly, (alongside an [LLE RSP plugin](https://github.com/mupen64plus/mupen64plus-rsp-cxd4) to work properly).
+
+You can look at the `--help` output or read the upstream documentation on the mupen-ui-console for more information about how to configure plugins, including storing the settings in a config file, but a quick command line example might be handy. (This section assumes you re using Linux)
+
+Given you have the `mupen64plus-video-angrylion-plus.so` and `mupen64plus-rsp-cxd4-sse2.so` from the two plugins mentioned above respectively, you can put them in the folder with the `libmupen64plus.so.2` file, and select them like so:
+
+```
+./mupen64plus --corelib ./libmupen64plus.so.2 --gfx ./mupen64plus-video-angrylion-plus.so --rsp ./mupen64plus-rsp-cxd4-sse2.so --bizhawk /path/to/MyCoolRom.z64
+```
+
+(Note that you may need to build the `.so` files yourself. For the mupen64plus-rsp-cxd4 plugin, you can build it by running `make` in that project's `projects/unix` folder after downloading the source code.)
+
+## Troubleshooting
+
+Depending on your configuration, you might find that adding the `--gfx` and/or `--rsp` flags causes `mupen64plus` to not work as expected while emitting warnings like these:
+
+
+
 Upstream README follows:
 
 ---
